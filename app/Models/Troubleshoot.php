@@ -15,6 +15,15 @@ class Troubleshoot extends Model
         'gejala',
         'solusi',
         'catatan',
-        'foto'
+        'foto',
+        'fotos',
+        'video',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'fotos' => 'array',
+        ];
+    }
 }

@@ -68,7 +68,7 @@
                                 <th class="row-number-heading">No.</th>
                                 <th>Masalah</th>
                                 <th>Kategori</th>
-                                <th>Foto</th>
+                                <th>Media</th>
                                 <th class="text-end">Aksi</th>
                             </tr>
                         </thead>
@@ -79,15 +79,18 @@
                                     <td class="issue-cell">
                                         <a href="{{ route('troubleshoot.show', $item) }}" class="issue-link">
                                             <span class="issue-title">{{ $item->judul_masalah }}</span>
-                                            <span class="issue-symptom">{{ Str::limit($item->gejala, 72) }}</span>
+                                            <span class="issue-symptom">{{ Str::limit($item->gejala ?: ($item->catatan ?: ($item->solusi ?: 'Catatan tambahan')), 72) }}</span>
                                         </a>
                                     </td>
                                     <td><span class="badge category-tag">{{ $item->kategori }}</span></td>
-                                    <td>
-                                        @if($item->foto)
-                                            <img src="{{ asset('storage/'.$item->foto) }}" alt="Foto {{ $item->judul_masalah }}" class="table-photo">
-                                        @else
-                                            <span class="no-photo" aria-label="Tidak ada foto">—</span>
+                                    <td class="media-cell">
+                                        @php($thumbnail = $item->foto ?: ($item->fotos[0] ?? null))
+                                        @if($thumbnail)
+                                            <img src="{{ asset('storage/'.$thumbnail) }}" alt="Foto {{ $item->judul_masalah }}" class="table-photo">
+                                        @endif
+                                        <span class="media-count">{{ count($item->fotos ?? []) + (int) (bool) $item->foto }} foto</span>
+                                        @if($item->video)
+                                            <span class="video-tag">Video</span>
                                         @endif
                                     </td>
                                     <td class="action-cell">

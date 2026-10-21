@@ -25,19 +25,43 @@
                 <a href="{{ route('troubleshoot.edit', $troubleshoot) }}" class="btn btn-outline-secondary">Edit catatan</a>
             </header>
 
-                @if($troubleshoot->foto)
-                    <img src="{{ asset('storage/'.$troubleshoot->foto) }}" alt="Foto {{ $troubleshoot->judul_masalah }}" class="detail-photo">
+                @php
+                    $photos = collect([$troubleshoot->foto])->merge($troubleshoot->fotos ?? [])->filter();
+                @endphp
+
+                @if($photos->isNotEmpty() || $troubleshoot->video)
+                    <section class="detail-media" aria-label="Media pendukung">
+                        @if($photos->isNotEmpty())
+                            <div class="detail-photo-grid">
+                                @foreach($photos as $photo)
+                                    <a href="{{ asset('storage/'.$photo) }}" target="_blank" rel="noopener" class="detail-photo-link">
+                                        <img src="{{ asset('storage/'.$photo) }}" alt="Foto {{ $troubleshoot->judul_masalah }}" class="detail-photo">
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                        @if($troubleshoot->video)
+                            <div class="detail-video-wrap">
+                                <h2>Video pendukung</h2>
+                                <video class="detail-video" src="{{ asset('storage/'.$troubleshoot->video) }}" controls preload="metadata"></video>
+                            </div>
+                        @endif
+                    </section>
                 @endif
 
-                <section class="detail-section">
-                    <h2>Gejala atau pesan error</h2>
-                    <p class="detail-copy font-monospace">{{ $troubleshoot->gejala }}</p>
-                </section>
+                @if($troubleshoot->gejala)
+                    <section class="detail-section">
+                        <h2>Gejala atau pesan error</h2>
+                        <p class="detail-copy font-monospace">{{ $troubleshoot->gejala }}</p>
+                    </section>
+                @endif
 
-                <section class="detail-section">
-                    <h2>Solusi</h2>
-                    <p class="detail-copy">{{ $troubleshoot->solusi }}</p>
-                </section>
+                @if($troubleshoot->solusi)
+                    <section class="detail-section">
+                        <h2>Solusi</h2>
+                        <p class="detail-copy">{{ $troubleshoot->solusi }}</p>
+                    </section>
+                @endif
 
                 @if($troubleshoot->catatan)
                     <section class="detail-section">

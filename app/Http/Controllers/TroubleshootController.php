@@ -33,16 +33,32 @@ class TroubleshootController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'judul_masalah' => 'required|string|max:255',
             'kategori' => 'required|string|max:100',
-            'gejala' => 'required',
-            'solusi' => 'required',
             'catatan' => 'nullable|string',
+            'judul_masalah' => 'nullable|string|max:255',
+            'gejala' => 'nullable|string',
+            'solusi' => 'nullable|string',
             'foto' => 'nullable|image|max:5120',
+            'fotos' => 'nullable|array|max:8',
+            'fotos.*' => 'image|max:4096',
+            'video' => 'nullable|file|mimes:mp4,webm,mov|max:15360',
         ]);
+
+        $validated['judul_masalah'] = $validated['kategori'];
 
         if ($request->hasFile('foto')) {
             $validated['foto'] = $request->file('foto')->store('troubleshoots', 'public');
+        }
+
+        if ($request->hasFile('fotos')) {
+            $validated['fotos'] = array_map(
+                fn ($photo) => $photo->store('troubleshoots', 'public'),
+                $request->file('fotos')
+            );
+        }
+
+        if ($request->hasFile('video')) {
+            $validated['video'] = $request->file('video')->store('troubleshoots/videos', 'public');
         }
 
         Troubleshoot::create($validated);
@@ -66,18 +82,50 @@ class TroubleshootController extends Controller
     public function update(Request $request, Troubleshoot $troubleshoot)
     {
         $validated = $request->validate([
-            'judul_masalah' => 'required|string|max:255',
             'kategori' => 'required|string|max:100',
-            'gejala' => 'required',
-            'solusi' => 'required',
             'catatan' => 'nullable|string',
+            'judul_masalah' => 'nullable|string|max:255',
+            'gejala' => 'nullable|string',
+            'solusi' => 'nullable|string',
             'foto' => 'nullable|image|max:5120',
+            'fotos' => 'nullable|array|max:8',
+            'fotos.*' => 'image|max:4096',
+            'video' => 'nullable|file|mimes:mp4,webm,mov|max:15360',
         ]);
 
+        if (! $troubleshoot->judul_masalah) {
+            $validated['judul_masalah'] = $validated['kategori'];
+        }
+
         $fotoLama = $troubleshoot->foto;
+        $videoLama = $troubleshoot->video;
+
+        $fotoBaru = $request->file('fotos', []);
+        $jumlahFotoLama = count(array_filter(array_merge(
+            [$troubleshoot->foto],
+            $troubleshoot->fotos ?? []
+        )));
+
+        if ($jumlahFotoLama + count($fotoBaru) > 8) {
+            return back()->withErrors([
+            'fotos' => 'Maksimal 8 foto per catatan, termasuk foto yang sudah tersimpan.',
+            ])->withInput();
+        }
 
         if ($request->hasFile('foto')) {
             $validated['foto'] = $request->file('foto')->store('troubleshoots', 'public');
+        }
+
+        if ($fotoBaru) {
+            $fotosBaru = array_map(
+                fn ($photo) => $photo->store('troubleshoots', 'public'),
+            $fotoBaru
+            );
+            $validated['fotos'] = array_merge($troubleshoot->fotos ?? [], $fotosBaru);
+        }
+
+        if ($request->hasFile('video')) {
+            $validated['video'] = $request->file('video')->store('troubleshoots/videos', 'public');
         }
 
         $troubleshoot->update($validated);
@@ -86,17 +134,24 @@ class TroubleshootController extends Controller
             Storage::disk('public')->delete($fotoLama);
         }
 
+        if (isset($validated['video']) && $videoLama) {
+            Storage::disk('public')->delete($videoLama);
+        }
+
         return redirect()->route('troubleshoot.index')->with('success', 'Data berhasil diperbarui!');
     }
 
     // Hapus data
     public function destroy(Troubleshoot $troubleshoot)
     {
-        $foto = $troubleshoot->foto;
+        $media = array_filter(array_merge(
+            [$troubleshoot->foto, $troubleshoot->video],
+            $troubleshoot->fotos ?? []
+        ));
         $troubleshoot->delete();
 
-        if ($foto) {
-            Storage::disk('public')->delete($foto);
+        if ($media) {
+            Storage::disk('public')->delete($media);
         }
 
         return redirect()->route('troubleshoot.index')->with('success', 'Data berhasil dihapus!');
